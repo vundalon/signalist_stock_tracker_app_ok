@@ -30,6 +30,10 @@ export const connectToDatabase = async () => {
     cached.promise = null;
     throw error;
   }
-  console.log(`Connected to database ${process.env.NODE_ENV} - ${MONGODB_URI}`);
+  const sanitizedUri =
+    MONGODB_URI?.replace(/:\/\/[^@]+@/, "://<credentials>@") ?? "unknown";
+  console.log(
+    `Connected to database [${process.env.NODE_ENV}] - ${sanitizedUri}`
+  );
   return cached.conn;
 };
