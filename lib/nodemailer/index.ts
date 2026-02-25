@@ -17,10 +17,11 @@ export const sendWelcomeEmail = async ({
   name,
   intro,
 }: WelcomeEmailData) => {
-  const htmlTemplate = WELCOME_EMAIL_TEMPLATE.replace("{{name}}", name).replace(
-    "{{intro}}",
-    intro
-  );
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://signalist.app";
+  const htmlTemplate = WELCOME_EMAIL_TEMPLATE.replace("{{name}}", name)
+    .replace("{{intro}}", intro)
+    .replace(/\{\{dashboardUrl\}\}/g, appUrl)
+    .replace(/\{\{unsubscribeUrl\}\}/g, `${appUrl}/unsubscribe`);
 
   const mailOptions = {
     from: `"Signalist" <signalist@jsmastery.pro>`,
@@ -42,10 +43,11 @@ export const sendNewsSummaryEmail = async ({
   date: string;
   newsContent: string;
 }): Promise<void> => {
-  const htmlTemplate = NEWS_SUMMARY_EMAIL_TEMPLATE.replace(
-    "{{date}}",
-    date
-  ).replace("{{newsContent}}", newsContent);
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://signalist.app";
+  const htmlTemplate = NEWS_SUMMARY_EMAIL_TEMPLATE.replace("{{date}}", date)
+    .replace("{{newsContent}}", newsContent)
+    .replace(/\{\{dashboardUrl\}\}/g, appUrl)
+    .replace(/\{\{unsubscribeUrl\}\}/g, `${appUrl}/unsubscribe`);
 
   const mailOptions = {
     from: `"Signalist News" <signalist@jsmastery.pro>`,
