@@ -14,13 +14,32 @@ import { Button } from "./ui/button";
 import { LogOut } from "lucide-react";
 import NavItems from "./NavItems";
 import { signOut } from "@/lib/actions/auth.actions";
+import { toast } from "sonner";
+import { useState } from "react";
 
 const UserDropdown = ({ user }: { user: User }) => {
   const router = useRouter();
+  const [signingOut, setSigningOut] = useState(false);
 
   const handleSignOut = async () => {
-    await signOut({});
-    router.push("/sign-in");
+    setSigningOut(true);
+    try {
+      const result = await signOut({});
+      if (!result || result.success !== false) {
+        router.push("/sign-in");
+      } else {
+        toast.error("Sign out failed", {
+          description: result.error ?? "Please try again",
+        });
+      }
+    } catch (e) {
+      console.error("Sign out error", e instanceof Error ? e.message : e);
+      toast.error("Sign out failed", {
+        description: "An unexpected error occurred. Please try again.",
+      });
+    } finally {
+      setSigningOut(false);
+    }
   };
 
   return (
@@ -63,7 +82,8 @@ const UserDropdown = ({ user }: { user: User }) => {
         <DropdownMenuSeparator className="bg-gray-600" />
         <DropdownMenuItem
           onClick={handleSignOut}
-          className="text-gray-100 text-md font-medium focus:bg-transparent focus:text-yellow-500 transition-colors cursor-pointer"
+          disabled={signingOut}
+          className="text-gray-100 text-md font-medium focus:bg-transparent focus:text-yellow-500 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <LogOut className="h-4 w-4 mr-2 hidden sm:block" />
           Logout
