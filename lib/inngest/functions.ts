@@ -7,7 +7,7 @@ import { sendNewsSummaryEmail, sendWelcomeEmail } from "../nodemailer";
 import { getAllUsersForNewsEmail } from "../actions/user.actions";
 import { getWatchlistSymbolsByEmail } from "../actions/watchlist.actions";
 import { getNews } from "../actions/finnhub.actions";
-import { formatDateToday } from "../utils";
+import { getFormattedTodayDate } from "../utils";
 
 export const sendSignUpEmail = inngest.createFunction(
   { id: "sign-up-email" },
@@ -90,7 +90,7 @@ export const sendDailyNewsSummary = inngest.createFunction(
           }
           perUser.push({ user, articles });
         } catch (e) {
-          console.error("daily-news: error preparing user news", user.email, e);
+          console.error("daily-news: error preparing user news", user.id, e);
           perUser.push({ user, articles: [] });
         }
       }
@@ -107,7 +107,7 @@ export const sendDailyNewsSummary = inngest.createFunction(
           JSON.stringify(articles, null, 2)
         );
 
-        const response = await step.ai.infer(`summarize-news-${user.email}`, {
+        const response = await step.ai.infer(`summarize-news-${user.id}`, {
           model: step.ai.models.gemini({ model: "gemini-2.5-flash-lite" }),
           body: {
             contents: [{ role: "user", parts: [{ text: prompt }] }],
@@ -120,25 +120,22 @@ export const sendDailyNewsSummary = inngest.createFunction(
 
         userNewsSummaries.push({ user, newsContent });
       } catch (e) {
-        console.error("Failed to summarize news for ; ", user.email, e);
+        console.error("Failed to summarize news for", user.id, e);
         userNewsSummaries.push({ user, newsContent: null });
       }
     }
 
-    // Step #4: Send emails (placeholder)
-    await step.run("send-news-emails", async () => {
-      await Promise.all(
-        userNewsSummaries.map(async ({ user, newsContent }) => {
-          if (!newsContent) return false;
-
-          return await sendNewsSummaryEmail({
-            email: user.email,
-            date: formatDateToday,
-            newsContent,
-          });
-        })
-      );
-    });
+    // Step #4: Send each email as its own independently retryable step
+    for (const { user, newsContent } of userNewsSummaries) {
+      if (!newsContent) continue;
+      await step.run(`send-news-email-${user.id}`, async () => {
+        return await sendNewsSummaryEmail({
+          email: user.email,
+          date: getFormattedTodayDate(),
+          newsContent,
+        });
+      });
+    }
 
     return {
       success: true,
